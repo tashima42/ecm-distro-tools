@@ -171,7 +171,7 @@ var rancherTagSubCmd = &cobra.Command{
 		opts := &repository.CreateReleaseOpts{
 			Tag:          tag,
 			Repo:         "rancher",
-			Owner:        rancherRelease.RancherRepoOwner,
+			Owner:        rootConfig.Rancher.RepoOwner(),
 			Branch:       rancherRelease.ReleaseBranch,
 			ReleaseNotes: "",
 		}
@@ -253,30 +253,28 @@ var dashboardTagSubCmd = &cobra.Command{
 		if !found {
 			return NewVersionNotFoundError(tag)
 		}
-		dashboardRelease.DryRun = dryRun
 
 		uiOpts := &repository.CreateReleaseOpts{
 			Tag:    tag,
-			Repo:   rootConfig.Dashboard.UIRepoName,
-			Owner:  rootConfig.Dashboard.UIRepoOwner,
+			Repo:   rootConfig.UI.RepoName(),
+			Owner:  rootConfig.UI.RepoOwner(),
 			Branch: dashboardRelease.UIReleaseBranch,
 		}
 
-		if err := ui.CreateRelease(ctx, ghClient, &config.UIRelease{
-			PreviousTag: dashboardRelease.PreviousTag,
-			DryRun:      dryRun,
-		}, uiOpts, rc, releaseType); err != nil {
+		uiRelease := config.UIRelease{PreviousTag: dashboardRelease.PreviousTag}
+
+		if err := ui.CreateRelease(ctx, ghClient, &uiRelease, uiOpts, rc, dryRun, releaseType); err != nil {
 			return err
 		}
 
 		dashboardOpts := &repository.CreateReleaseOpts{
 			Tag:    tag,
-			Repo:   rootConfig.Dashboard.RepoName,
-			Owner:  rootConfig.Dashboard.RepoOwner,
+			Repo:   rootConfig.Dashboard.RepoName(),
+			Owner:  rootConfig.Dashboard.RepoOwner(),
 			Branch: dashboardRelease.ReleaseBranch,
 		}
 
-		return dashboard.CreateRelease(ctx, ghClient, &dashboardRelease, dashboardOpts, rc, releaseType)
+		return dashboard.CreateRelease(ctx, ghClient, &dashboardRelease, dashboardOpts, rc, dryRun, releaseType)
 	},
 }
 
@@ -310,16 +308,15 @@ var cliTagSubCmd = &cobra.Command{
 		if !found {
 			return NewVersionNotFoundError(tag)
 		}
-		cliRelease.DryRun = dryRun
 
 		cliOpts := &repository.CreateReleaseOpts{
 			Tag:    tag,
-			Repo:   rootConfig.CLI.RepoName,
-			Owner:  rootConfig.CLI.RepoOwner,
+			Repo:   rootConfig.CLI.RepoName(),
+			Owner:  rootConfig.CLI.RepoOwner(),
 			Branch: cliRelease.ReleaseBranch,
 		}
 
-		return cli.CreateRelease(ctx, ghClient, &cliRelease, cliOpts, rc, releaseType)
+		return cli.CreateRelease(ctx, ghClient, &cliRelease, cliOpts, rc, dryRun, releaseType)
 	},
 }
 

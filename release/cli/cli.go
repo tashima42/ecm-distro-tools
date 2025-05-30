@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	"github.com/google/go-github/v39/github"
-	"github.com/rancher/ecm-distro-tools/cmd/release/config"
 	ecmConfig "github.com/rancher/ecm-distro-tools/cmd/release/config"
 	ecmExec "github.com/rancher/ecm-distro-tools/exec"
 	"github.com/rancher/ecm-distro-tools/release"
@@ -24,7 +23,7 @@ const (
 )
 
 // CreateRelease will create a new tag and a new release with given params.
-func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.CLIRelease, opts *repository.CreateReleaseOpts, rc bool, releaseType string) error {
+func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.CLIRelease, opts *repository.CreateReleaseOpts, rc, dryRun bool, releaseType string) error {
 	if !semver.IsValid(opts.Tag) {
 		return errors.New("tag isn't a valid semver: " + opts.Tag)
 	}
@@ -65,7 +64,7 @@ func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.CLIR
 
 	fmt.Printf("create release options: %+v\n", *opts)
 
-	if r.DryRun {
+	if dryRun {
 		fmt.Println("dry run, skipping creating release")
 		return nil
 	}
@@ -79,10 +78,8 @@ func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.CLIR
 	return nil
 }
 
-func UpdateRancherReferences(ctx context.Context, cfg *config.CLI, ghClient *github.Client, r *config.CLIRelease, u *config.User) error {
-	r.RancherUpstreamURL = cfg.RancherUpstreamURL
-
-	commitSHA, err := getRancherPkgSHA(ctx, ghClient, cfg.RancherRepoOwner, cfg.RancherRepoName, r.RancherTag)
+func UpdateRancherReferences(ctx context.Context, cfg *ecmConfig.CLI, ghClient *github.Client, r *ecmConfig.CLIRelease, u *ecmConfig.User, rancherRepoName, rancherRepoOwner string) error {
+	commitSHA, err := getRancherPkgSHA(ctx, ghClient, rancherRepoName, rancherRepoOwner, r.RancherTag)
 	if err != nil {
 		return err
 	}
@@ -129,7 +126,7 @@ func updateRancherReferencesAndPush(r *ecmConfig.CLIRelease, _ *ecmConfig.User) 
 	return nil
 }
 
-func createCLIReferencesPR(ctx context.Context, cfg *config.CLI, ghClient *github.Client, r *ecmConfig.CLIRelease, u *ecmConfig.User) error {
+func createCLIReferencesPR(ctx context.Context, cfg *ecmConfig.CLI, ghClient *github.Client, r *ecmConfig.CLIRelease, u *ecmConfig.User) error {
 	pull := &github.NewPullRequest{
 		Title:               github.String(fmt.Sprintf("[%s] Bump Rancher CLI version to `%s`", r.ReleaseBranch, r.RancherTag)),
 		Base:                github.String(r.ReleaseBranch),
@@ -138,7 +135,7 @@ func createCLIReferencesPR(ctx context.Context, cfg *config.CLI, ghClient *githu
 	}
 
 	// creating a pr from your fork branch
-	pr, _, err := ghClient.PullRequests.Create(ctx, cfg.RepoOwner, cfg.RepoName, pull)
+	pr, _, err := ghClient.PullRequests.Create(ctx, cfg.RepoOwner(), cfg.RepoName(), pull)
 	if err != nil {
 		return err
 	}

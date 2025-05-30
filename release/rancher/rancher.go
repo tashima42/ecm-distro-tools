@@ -24,7 +24,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/go-github/v39/github"
-	"github.com/rancher/ecm-distro-tools/cmd/release/config"
 	ecmConfig "github.com/rancher/ecm-distro-tools/cmd/release/config"
 	ecmExec "github.com/rancher/ecm-distro-tools/exec"
 	ecmHTTP "github.com/rancher/ecm-distro-tools/http"
@@ -213,14 +212,12 @@ func GeneratePrimeArtifactsIndex(ctx context.Context, path string, ignoreVersion
 	return os.WriteFile(filepath.Join(path, "index-prerelease.html"), preReleaseIndex, 0644)
 }
 
-func UpdateDashboardReferences(ctx context.Context, cfg *config.Dashboard, ghClient *github.Client, r *config.DashboardRelease, u *config.User) error {
-	r.RancherUpstreamURL = cfg.RancherUpstreamURL
-
-	if err := updateDashboardReferencesAndPush(r, u); err != nil {
+func UpdateDashboardReferences(ctx context.Context, cfg *ecmConfig.Dashboard, ghClient *github.Client, d *ecmConfig.DashboardRelease, u *ecmConfig.User, r *ecmConfig.RancherRelease, rancherRepoOwner, rancherRepoName string) error {
+	if err := updateDashboardReferencesAndPush(d, u); err != nil {
 		return err
 	}
 
-	return createDashboardReferencesPR(ctx, cfg, ghClient, r, u)
+	return createDashboardReferencesPR(ctx, ghClient, d, u, r, rancherRepoOwner, rancherRepoName)
 }
 
 func updateDashboardReferencesAndPush(r *ecmConfig.DashboardRelease, _ *ecmConfig.User) error {
@@ -235,16 +232,16 @@ func updateDashboardReferencesAndPush(r *ecmConfig.DashboardRelease, _ *ecmConfi
 	return nil
 }
 
-func createDashboardReferencesPR(ctx context.Context, cfg *config.Dashboard, ghClient *github.Client, r *ecmConfig.DashboardRelease, u *ecmConfig.User) error {
+func createDashboardReferencesPR(ctx context.Context, ghClient *github.Client, d *ecmConfig.DashboardRelease, u *ecmConfig.User, r *ecmConfig.RancherRelease, rancherRepoOwner, rancherRepoName string) error {
 	pull := &github.NewPullRequest{
-		Title:               github.String(fmt.Sprintf("Bump Dashboard to `%s`", r.Tag)),
-		Base:                github.String(r.RancherReleaseBranch),
-		Head:                github.String(u.GithubUsername + ":update-build-refs-" + r.Tag),
+		Title:               github.String(fmt.Sprintf("Bump Dashboard to `%s`", d.Tag)),
+		Base:                github.String(r.ReleaseBranch),
+		Head:                github.String(u.GithubUsername + ":update-build-refs-" + d.Tag),
 		MaintainerCanModify: github.Bool(true),
 	}
 
 	// creating a pr from your fork branch
-	pr, _, err := ghClient.PullRequests.Create(ctx, cfg.RancherRepoOwner, cfg.RancherRepoName, pull)
+	pr, _, err := ghClient.PullRequests.Create(ctx, rancherRepoOwner, rancherRepoName, pull)
 	if err != nil {
 		return err
 	}
@@ -254,14 +251,12 @@ func createDashboardReferencesPR(ctx context.Context, cfg *config.Dashboard, ghC
 	return nil
 }
 
-func UpdateCLIReferences(ctx context.Context, cfg *config.CLI, ghClient *github.Client, r *config.CLIRelease, u *config.User) error {
-	r.RancherUpstreamURL = cfg.RancherUpstreamURL
-
-	if err := updateCLIReferencesAndPush(r, u); err != nil {
+func UpdateCLIReferences(ctx context.Context, ghClient *github.Client, d *ecmConfig.CLIRelease, u *ecmConfig.User, r *ecmConfig.RancherRelease, rancherRepoOwner, rancherRepoName string) error {
+	if err := updateCLIReferencesAndPush(d, u); err != nil {
 		return err
 	}
 
-	return createCLIReferencesPR(ctx, cfg, ghClient, r, u)
+	return createCLIReferencesPR(ctx, ghClient, d, u, r, rancherRepoOwner, rancherRepoName)
 }
 
 func updateCLIReferencesAndPush(r *ecmConfig.CLIRelease, _ *ecmConfig.User) error {
@@ -275,16 +270,16 @@ func updateCLIReferencesAndPush(r *ecmConfig.CLIRelease, _ *ecmConfig.User) erro
 	return nil
 }
 
-func createCLIReferencesPR(ctx context.Context, cfg *config.CLI, ghClient *github.Client, r *ecmConfig.CLIRelease, u *ecmConfig.User) error {
+func createCLIReferencesPR(ctx context.Context, ghClient *github.Client, d *ecmConfig.CLIRelease, u *ecmConfig.User, r *ecmConfig.RancherRelease, rancherRepoOwner, rancherRepoName string) error {
 	pull := &github.NewPullRequest{
-		Title:               github.String(fmt.Sprintf("Bump Rancher CLI version to `%s`", r.Tag)),
-		Base:                github.String(r.RancherReleaseBranch),
-		Head:                github.String(u.GithubUsername + ":update-build-refs-" + r.Tag),
+		Title:               github.String(fmt.Sprintf("Bump Rancher CLI version to `%s`", d.Tag)),
+		Base:                github.String(r.ReleaseBranch),
+		Head:                github.String(u.GithubUsername + ":update-build-refs-" + d.Tag),
 		MaintainerCanModify: github.Bool(true),
 	}
 
 	// creating a pr from your fork branch
-	pr, _, err := ghClient.PullRequests.Create(ctx, cfg.RancherRepoOwner, cfg.RancherRepoName, pull)
+	pr, _, err := ghClient.PullRequests.Create(ctx, rancherRepoOwner, rancherRepoName, pull)
 	if err != nil {
 		return err
 	}

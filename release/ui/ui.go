@@ -21,7 +21,7 @@ const (
 )
 
 // CreateRelease will create a new tag and a new release with given params.
-func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.UIRelease, opts *repository.CreateReleaseOpts, rc bool, releaseType string) error {
+func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.UIRelease, opts *repository.CreateReleaseOpts, rc, dryRun bool, releaseType string) error {
 	if !semver.IsValid(opts.Tag) {
 		return errors.New("tag isn't a valid semver: " + opts.Tag)
 	}
@@ -64,7 +64,7 @@ func CreateRelease(ctx context.Context, client *github.Client, r *ecmConfig.UIRe
 
 	fmt.Printf("create release options: %+v\n", *opts)
 
-	if r.DryRun {
+	if dryRun {
 		fmt.Println("dry run, skipping creating release")
 		return nil
 	}

@@ -165,13 +165,18 @@ var updateRancherDashboardCmd = &cobra.Command{
 			return NewVersionNotFoundError(version)
 		}
 
+		rancherRelease, found := rootConfig.Rancher.Versions[versionTrimmed]
+		if !found {
+			return NewVersionNotFoundError(version)
+		}
+
 		dashboardRelease.Tag = version
 
 		ctx := context.Background()
 
 		ghClient := repository.NewGithub(ctx, rootConfig.Auth.GithubToken)
 
-		return rancher.UpdateDashboardReferences(ctx, rootConfig.Dashboard, ghClient, &dashboardRelease, rootConfig.User)
+		return rancher.UpdateDashboardReferences(ctx, rootConfig.Dashboard, ghClient, &dashboardRelease, rootConfig.User, &rancherRelease, rootConfig.Rancher.RepoOwner(), rootConfig.Rancher.RepoName())
 	},
 }
 
@@ -201,13 +206,18 @@ var updateRancherCLICmd = &cobra.Command{
 			return NewVersionNotFoundError(version)
 		}
 
+		rancherRelease, found := rootConfig.Rancher.Versions[versionTrimmed]
+		if !found {
+			return NewVersionNotFoundError(version)
+		}
+
 		cliRelease.Tag = version
 
 		ctx := context.Background()
 
 		ghClient := repository.NewGithub(ctx, rootConfig.Auth.GithubToken)
 
-		return rancher.UpdateCLIReferences(ctx, rootConfig.CLI, ghClient, &cliRelease, rootConfig.User)
+		return rancher.UpdateCLIReferences(ctx, ghClient, &cliRelease, rootConfig.User, &rancherRelease, rootConfig.Rancher.RepoOwner(), rootConfig.Rancher.RepoName())
 	},
 }
 
@@ -243,13 +253,12 @@ var updateCLICmd = &cobra.Command{
 
 		cliRelease.Tag = version
 		cliRelease.RancherTag = rancherTag
-		cliRelease.CLIUpstreamURL = fmt.Sprintf("git@github.com:%s/%s.git", rootConfig.CLI.RepoOwner, rootConfig.CLI.RepoName)
 
 		ctx := context.Background()
 
 		ghClient := repository.NewGithub(ctx, rootConfig.Auth.GithubToken)
 
-		return cli.UpdateRancherReferences(ctx, rootConfig.CLI, ghClient, &cliRelease, rootConfig.User)
+		return cli.UpdateRancherReferences(ctx, rootConfig.CLI, ghClient, &cliRelease, rootConfig.User, rootConfig.Rancher.RepoName(), rootConfig.Rancher.RepoOwner())
 	},
 }
 
