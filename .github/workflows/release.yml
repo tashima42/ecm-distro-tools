@@ -31,4 +31,4 @@ jobs:
       - name: Create release and ublish Binaries
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create -R "$GITHUB_REPOSITORY}" --draft --generate-notes "${GITHUB_REF_NAME}" "${GITHUB_WORKSPACE}/dist/*"
+        run: gh release create -R "${GITHUB_REPOSITORY}" --draft --generate-notes "${GITHUB_REF_NAME}" "${GITHUB_WORKSPACE}/dist/*"
