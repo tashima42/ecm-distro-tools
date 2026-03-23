@@ -3,6 +3,9 @@ on:
   push:
     tags:
       - "v*"
+
+permissions: {}
+
 jobs:
   release:
     permissions:
@@ -12,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 #v6
         with:
           go-version-file: 'go.mod'
@@ -23,28 +28,7 @@ jobs:
           export VERSION=${GITHUB_REF_NAME}
           make test
           make package-binaries
-      - name: Publish Binaries
+      - name: Create release and ublish Binaries
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload -R ${{ github.repository }} ${{ github.ref_name }} ${{ github.workspace }}/dist/* --clobber
-      - name: Load Secrets from Vault
-        uses: rancher-eio/read-vault-secrets@0da85151ad1f19ed7986c41587e45aac1ace74b6 # v3
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKERHUB_USERNAME;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKERHUB_TOKEN;
-      - name: Publish manifest
-        uses: ./actions/publish-image
-        with:
-          image: ecm-distro-tools
-          tag: ${{ github.ref_name }}
-          platforms: ${{ matrix.platforms }}
-
-          push-to-public: false
-
-          # This project is for internal use only, therefore we can treat
-          # Docker as its Prime registry.
-          prime-registry: docker.io
-          prime-repo: rancher
-          prime-username: ${{ env.DOCKERHUB_USERNAME }}
-          prime-password: ${{ env.DOCKERHUB_TOKEN }}
+        run: gh release create -R "$GITHUB_REPOSITORY}" --draft --generate-notes "${GITHUB_REF_NAME}" "${GITHUB_WORKSPACE}/dist/*"
