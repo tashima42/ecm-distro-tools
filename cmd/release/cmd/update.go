@@ -329,7 +329,15 @@ var updateCLICmd = &cobra.Command{
 			return fmt.Errorf("failed to create github client: %v", err)
 		}
 
-		return cli.UpdateRancherReferences(ctx, ghClient, tag, rancherRepo, rancherRepoOwner, cliUpstreamURL, cliBranch, cliRepo, githubUsername, dryRun)
+		rancherBranch, err := rancher.ReleaseBranchFromTag(tag)
+		if err != nil {
+			return errors.New("failed to get rancher release branch from tag " + tag + ": " + err.Error())
+		}
+		if rootConfig.Rancher != nil {
+			rancherBranch = config.ValueOrDefault(rootConfig.Rancher.Versions[trimmedTag].ReleaseBranch, rancherBranch)
+		}
+
+		return cli.UpdateRancherReferences(ctx, ghClient, tag, rancherRepo, rancherRepoOwner, cliRelease.RancherCommitSHA, rancherBranch, cliUpstreamURL, cliBranch, cliRepo, githubUsername, dryRun)
 	},
 }
 

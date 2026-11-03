@@ -131,6 +131,9 @@ type DashboardRelease struct {
 type CLIRelease struct {
 	PreviousTag   string `json:"previous_tag"`
 	ReleaseBranch string `json:"release_branch"`
+	// RancherCommitSHA is the rancher/rancher commit (not a rancher/cli commit) that the CLI go.mod references are bumped to.
+	// If empty, the latest commit of the Rancher release branch is used.
+	RancherCommitSHA string `json:"rancher_commit_sha"`
 }
 
 // RKE2
@@ -298,8 +301,9 @@ func ExampleConfig() (string, error) {
 		CLI: &CLI{
 			Versions: map[string]CLIRelease{
 				"v2.x.y": {
-					PreviousTag:   "v2.x.y",
-					ReleaseBranch: "v2.x",
+					PreviousTag:      "v2.x.y",
+					ReleaseBranch:    "v2.x",
+					RancherCommitSHA: "",
 				},
 			},
 		},
@@ -388,8 +392,9 @@ Dashboard {{ range $dashboardVersion, $dashboardValue := .Dashboard.Versions }}
 
 CLI {{ range $cliVersion, $cliValue := .CLI.Versions }}
 	{{ $cliVersion }}:
-		Release Branch:     {{ $cliValue.ReleaseBranch }}
-		PreviousTag:        {{ $cliValue.PreviousTag }}{{ end }}
+		Release Branch:      {{ $cliValue.ReleaseBranch }}
+		PreviousTag:         {{ $cliValue.PreviousTag }}
+		Rancher Commit SHA:  {{ $cliValue.RancherCommitSHA }}{{ end }}
 
 RKE2{{ range .RKE2.Versions }}
 	{{ . }}{{ end}}

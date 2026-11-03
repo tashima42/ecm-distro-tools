@@ -80,10 +80,16 @@ func ReleaseBranchFromTag(tag string) (string, error) {
 	return majorMinor, nil
 }
 
-func UpdateRancherReferences(ctx context.Context, ghClient *github.Client, tag, rancherRepoName, rancherRepoOwner, cliUpstreamURL, cliReleaseBranch, cliRepoName, githubUsername string, dryRun bool) error {
-	commitSHA, err := repository.RefCommitSHA(ctx, ghClient, rancherRepoOwner, rancherRepoName, "tags/"+tag)
-	if err != nil {
-		return err
+// UpdateRancherReferences bumps the rancher/rancher go modules in the cli repo to rancherCommitSHA.
+// If rancherCommitSHA is empty, the latest commit of rancherReleaseBranch is used.
+func UpdateRancherReferences(ctx context.Context, ghClient *github.Client, tag, rancherRepoName, rancherRepoOwner, rancherCommitSHA, rancherReleaseBranch, cliUpstreamURL, cliReleaseBranch, cliRepoName, githubUsername string, dryRun bool) error {
+	commitSHA := rancherCommitSHA
+	if commitSHA == "" {
+		var err error
+		commitSHA, err = repository.BranchLatestCommitSHA(ctx, ghClient, rancherRepoOwner, rancherRepoName, rancherReleaseBranch)
+		if err != nil {
+			return fmt.Errorf("failed to get latest commit of rancher branch %s: %v", rancherReleaseBranch, err)
+		}
 	}
 
 	if err := updateRancherReferencesAndPush(tag, cliReleaseBranch, commitSHA, cliUpstreamURL, dryRun); err != nil {
@@ -117,12 +123,12 @@ func updateRancherReferencesAndPush(tag, releaseBranch, rancherCommitSHA, cliUps
 	return nil
 }
 
-func createCLIReferencesPR(ctx context.Context, ghClient *github.Client, tag, tagSHA, releaseBranch, cliRepoName, rancherRepoOwner, githubUsername string) error {
+func createCLIReferencesPR(ctx context.Context, ghClient *github.Client, tag, rancherCommitSHA, releaseBranch, cliRepoName, rancherRepoOwner, githubUsername string) error {
 	pull := github.CreatePullRequest{
 		Title:               new("Bump Rancher version to " + tag),
 		Base:                releaseBranch,
 		Head:                githubUsername + ":" + UpdateCLIRefsBranchName(tag),
-		Body:                new("```" + tag + ": " + tagSHA + "```"),
+		Body:                new("```" + tag + ": " + rancherCommitSHA + "```"),
 		MaintainerCanModify: new(true),
 	}
 
